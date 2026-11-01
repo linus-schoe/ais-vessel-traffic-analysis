@@ -1,0 +1,3 @@
+*.html linguist-generated
+03_report/graphs/*_files/** linguist-vendored
+*.tex linguist-documentation
