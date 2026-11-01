@@ -1,0 +1,40 @@
+# =============================================================================
+# Docker Compose: NGINX (static dashboard, Task 6) + Shiny (interactive app,
+# Task 7), on a shared network. Run from the repository root:
+#
+#   docker compose up -d --build        # start
+#   docker compose down                 # stop
+#
+# Local URLs (with the 7080 mapping below):
+#   Static dashboard : http://localhost:7080/sample_points.html   (Task 6)
+#   Shiny app        : http://localhost:7080/ais_app/             (Task 7)
+#
+# On the assigned server these are reached as
+#   https://<your-server>/sample_points.html  and  https://<your-server>/ais_app
+# (the server's outer TLS proxy forwards to this NGINX).
+# =============================================================================
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: aidaho_nginx
+    ports:
+      - "7080:80"                                   # host:container — server exposes :7080
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro         # reverse-proxy + static config
+      - ./www:/usr/share/nginx/html:ro              # document root -> sample_points.html
+    depends_on:
+      - shiny
+    restart: unless-stopped
+
+  shiny:
+    build: ./shiny                                  # Dockerfile installs R packages
+    platform: linux/amd64
+    container_name: aidaho_shiny
+    volumes:
+      # Bind-mount the app so edits in ./shiny/app are live inside the container
+      # (Task 7.1: "changes to the files in the /shiny folder are available").
+      - ./shiny/app:/srv/shiny-server/ais_app:rw
+    expose:
+      - "3838"                                       # internal only; NGINX proxies it
+    restart: unless-stopped
